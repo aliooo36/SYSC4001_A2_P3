@@ -25,12 +25,12 @@ struct memory_partition_t {
 };
 
 memory_partition_t memory[] = {
-    memory_partition_t(1, 40, "empty"),
-    memory_partition_t(2, 25, "empty"),
-    memory_partition_t(3, 15, "empty"),
-    memory_partition_t(4, 10, "empty"),
-    memory_partition_t(5, 8, "empty"),
-    memory_partition_t(6, 2, "empty")
+    memory_partition_t(1, 40, "free"),
+    memory_partition_t(2, 25, "free"),
+    memory_partition_t(3, 15, "free"),
+    memory_partition_t(4, 10, "free"),
+    memory_partition_t(5, 8, "free"),
+    memory_partition_t(6, 2, "free")
 };
 
 struct PCB{
@@ -54,7 +54,7 @@ struct external_file{
 bool allocate_memory(PCB* current) {
     for(int i = 5; i >= 0; i--) { //Start from smallest partition
         //check is the code will fit and if the partition is empty
-        if(memory[i].size >= current->size && memory[i].code == "empty") {
+        if(memory[i].size >= current->size && memory[i].code == "free") {
             current->partition_number = memory[i].partition_number;
             memory[i].code = current->program_name;
             return true;
@@ -65,7 +65,7 @@ bool allocate_memory(PCB* current) {
 
 //frees the memory given PCB.
 void free_memory(PCB* process) {
-    memory[process->partition_number - 1].code = "empty";
+    memory[process->partition_number - 1].code = "free";
     process->partition_number = -1;
 }
 
@@ -219,6 +219,10 @@ void write_output(std::string execution, const char* filename) {
     }
 
     std::cout << "Output generated in execution.txt" << std::endl;
+}
+
+std::string scheduler(){
+    return "scheduler called\n";
 }
 
 //Helper function for a sanity check. Prints the external files table

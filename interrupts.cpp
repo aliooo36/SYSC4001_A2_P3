@@ -1,11 +1,12 @@
 /**
  *
  * @file interrupts.cpp
- * @author Sasisekhar Govind
+ * @author Muhammad Ali 101291890
+ * @author Gregory Horvat 101303925
  *
  */
 
-#include<interrupts.hpp>
+#include "interrupts.hpp"
 
 std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string> trace_file, int time, std::vector<std::string> vectors, std::vector<int> delays, std::vector<external_file> external_files, PCB current, std::vector<PCB> wait_queue) {
 
@@ -13,6 +14,7 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
     std::string execution = "";  //!< string to accumulate the execution output
     std::string system_status = "";  //!< string to accumulate the system status output
     int current_time = time;
+    static unsigned int next_pid = 1;
 
     //parse each line of the input trace file. 'for' loop to keep track of indices.
     for(size_t i = 0; i < trace_file.size(); i++) {
@@ -51,7 +53,22 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             ///////////////////////////////////////////////////////////////////////////////////////////
             //Add your FORK output here
 
+            // execution output
+            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + ", FORK\n";
+            current_time += duration_intr;
 
+            // creating child PCB
+            PCB child(next_pid, current.PID, current.program_name, current.size, current.partition_number);
+            next_pid++;
+
+            execution += std::to_string(current_time) + ", 1, Cloning the PCB\n";
+            current_time += 1;
+
+            execution += std::to_string(current_time) + ", 1, " + scheduler();
+            current_time += 1;
+
+            execution += std::to_string(current_time) + ", 1, IRET\n";
+            current_time += 1;            
 
             ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -92,7 +109,28 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             ///////////////////////////////////////////////////////////////////////////////////////////
             //With the child's trace, run the child (HINT: think recursion)
 
+            // add the child to the queue
+            wait_queue.push_back(child);
+            
+            // system_status output logic
+            system_status += "time: " + std::to_string(current_time) + "; current trace: FORK\n";
+            system_status += print_PCB(current, wait_queue);
+            system_status += "\n";
 
+            // recursively simulating child's execution
+            auto [child_exec, child_status, child_time] = simulate_trace(
+                child_trace,
+                current_time,
+                vectors,
+                delays,
+                external_files,
+                child,
+                std::vector<PCB>() // Child starts with empty queue
+            );
+
+            execution += child_exec;
+            system_status += child_status;
+            current_time = child_time;
 
             ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -105,7 +143,80 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             ///////////////////////////////////////////////////////////////////////////////////////////
             //Add your EXEC output here
 
+            // execution output
+            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + ", EXEC\n";
+            current_time += duration_intr;
+            
+            // search for the program in external_files
+            unsigned int program_size = 0;
+            bool found = false;
+            for (const auto& file : external_files)
+            {
+                if (file.program_name == program_name)
+                {
+                    // program found
+                    program_size = file.size;
+                    found = true;
+                    break;
+                }
+            }
 
+            if (!found)
+            {
+                // execution output for no program found
+                execution += std::to_string(current_time) + ", 1, ERROR: Program " + program_name + " not found in external files\n";
+                current_time += 1;
+            }
+            else
+            {
+                // execution output logic for if the program is found
+                execution += std::to_string(current_time) + ", 1, program size: " + std::to_string(program_size) + " MB\n";
+                current_time += 1;
+
+                // freeing current partition to find where executable will fit
+                free_memory(&current);
+
+                execution += std::to_string(current_time) + ", 1, free current partition\n";
+                current_time += 1;
+
+                // update PCB
+                current.program_name = program_name;
+                current.size = program_size;
+                current.partition_number = -1;
+
+                // allocate memory
+                if (allocate_memory(&current))
+                {
+                    execution += std::to_string(current_time) + ", 1, allocate partition " + std::to_string(current.partition_number) + " for " + program_name + "\n";
+                    current_time += 1;
+
+                    // requirement h, load program from disk to RAM
+                    int load_time = program_size * 15; // assumption in assignment (15ms for every MB)
+                    execution += std::to_string(current_time) + ", " + std::to_string(load_time) + ", loading " + program_name + " from disk to memory\n";
+                    current_time += load_time;
+
+                    // requirement i
+                    execution += std::to_string(current_time) + ", 1, partition " + std::to_string(current.partition_number) + " marked as occupied\n";
+                    current_time += 1;
+
+                    // requirement j, log PCB update
+                    execution += std::to_string(current_time) + ", 1, update PCB with new program info\n";
+                    current_time += 1;
+
+                    // requirment k, call scheduler
+                    execution += std::to_string(current_time) + ", 1, " + scheduler();
+                    current_time += 1;
+
+                    execution += std::to_string(current_time) + ", 1, IRET\n";
+                    current_time += 1;                    
+                }
+                else
+                {
+                    // no partition found
+                    execution += std::to_string(current_time) + ", 1, ERROR: no partition available for " + program_name + " (size: " + std::to_string(program_size) + "MB)\n";
+                    current_time += 1;
+                }
+            }
 
             ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -118,14 +229,38 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
                 exec_traces.push_back(exec_trace);
             }
 
+            exec_trace_file.close();
+
             ///////////////////////////////////////////////////////////////////////////////////////////
             //With the exec's trace (i.e. trace of external program), run the exec (HINT: think recursion)
 
+            // run new program if found and allocated
+            if (found && current.partition_number != -1 && !exec_traces.empty())
+            {
+                // record system status
+                system_status += "time: " + std::to_string(current_time) + "; current trace: EXEC " + program_name + ", " + std::to_string(duration_intr) + "\n";
+                system_status += print_PCB(current, wait_queue);
+                system_status += "\n";
 
+                auto [exec_exec, exec_status, exec_time] = simulate_trace(
+                    exec_traces,
+                    current_time,
+                    vectors,
+                    delays,
+                    external_files,
+                    current,
+                    wait_queue
+                );
+
+                execution += exec_exec;
+                system_status += exec_status;
+                current_time = exec_time;
+            }
 
             ///////////////////////////////////////////////////////////////////////////////////////////
 
             break; //Why is this important? (answer in report)
+            // break ensures we stop executing instruction that no longer exist
 
         }
     }
@@ -146,17 +281,14 @@ int main(int argc, char** argv) {
     //Just a sanity check to know what files you have
     print_external_files(external_files);
 
-    //Make initial PCB (notice how partition is not assigned yet)
-    PCB current(0, -1, "init", 1, -1);
-    //Update memory (partition is assigned here, you must implement this function)
-    if(!allocate_memory(&current)) {
-        std::cerr << "ERROR! Memory allocation failed!" << std::endl;
-    }
+    //Make initial PCB (Set to partition 6)
+    PCB current(0, -1, "init", 1, 6);
+    
+    memory[5].code = "init";
 
     std::vector<PCB> wait_queue;
 
     /******************ADD YOUR VARIABLES HERE*************************/
-
 
     /******************************************************************/
 
