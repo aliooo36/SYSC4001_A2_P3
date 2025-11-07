@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "algorithm": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "tuple": "cpp"
     }
 }

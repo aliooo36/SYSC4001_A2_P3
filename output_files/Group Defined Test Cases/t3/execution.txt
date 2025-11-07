@@ -1,0 +1,70 @@
+0, 10, CPU Burst
+10, 1, switch to kernel mode
+11, 10, context saved
+21, 1, find vector 2 in memory position 0x0004
+22, 1, load address 0X0695 into the PC
+23, 20, Cloning the PCB
+43, 0, scheduler called
+43, 1, IRET
+44, 1, switch to kernel mode
+45, 10, context saved
+55, 1, find vector 3 in memory position 0x0006
+56, 1, load address 0X042B into the PC
+57, 40, Program is 10 MB large
+97, 1, free current partition
+98, 1, allocate partition 4 for program1
+99, 150, loading program1 into memory
+249, 1, partition 4 marked as occupied
+250, 1, update PCB with new program info
+251, 1, scheduler called
+252, 1, IRET
+253, 70, CPU Burst
+323, 1, switch to kernel mode
+324, 10, context saved
+334, 1, find vector 7 in memory position 0x000E
+335, 1, load address 0X00BD into the PC
+336, 152, SYSCALL ISR
+488, 1, IRET
+489, 50, CPU Burst
+539, 1, switch to kernel mode
+540, 10, context saved
+550, 1, find vector 3 in memory position 0x0006
+551, 1, load address 0X042B into the PC
+552, 300, SYSCALL ISR
+852, 1, IRET
+853, 40, CPU Burst
+893, 1, switch to kernel mode
+894, 10, context saved
+904, 1, find vector 2 in memory position 0x0004
+905, 1, load address 0X0695 into the PC
+906, 18, Cloning the PCB
+924, 0, scheduler called
+924, 1, IRET
+925, 1, switch to kernel mode
+926, 10, context saved
+936, 1, find vector 3 in memory position 0x0006
+937, 1, load address 0X042B into the PC
+938, 28, Program is 15 MB large
+966, 1, free current partition
+967, 1, allocate partition 3 for program2
+968, 225, loading program2 into memory
+1193, 1, partition 3 marked as occupied
+1194, 1, update PCB with new program info
+1195, 1, scheduler called
+1196, 1, IRET
+1197, 55, CPU Burst
+1252, 1, switch to kernel mode
+1253, 10, context saved
+1263, 1, find vector 8 in memory position 0x0010
+1264, 1, load address 0X06EF into the PC
+1265, 1000, SYSCALL ISR
+2265, 1, IRET
+2266, 35, CPU Burst
+2301, 1, switch to kernel mode
+2302, 10, context saved
+2312, 1, find vector 2 in memory position 0x0004
+2313, 1, load address 0X0695 into the PC
+2314, 150, SYSCALL ISR
+2464, 1, IRET
+2465, 45, CPU Burst
+2510, 30, CPU Burst

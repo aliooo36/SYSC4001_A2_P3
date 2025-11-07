@@ -57,8 +57,9 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + ", Cloning the PCB\n";
             current_time += duration_intr;
 
-            // creating child PCB
-            PCB child(next_pid, current.PID, current.program_name, current.size, current.partition_number);
+            // creating child PCB with its own partition
+            PCB child(next_pid, current.PID, current.program_name, current.size, -1);
+            allocate_memory(&child);
             next_pid++;
 
             execution += std::to_string(current_time) + ", 0, " + scheduler();
@@ -106,15 +107,16 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
             ///////////////////////////////////////////////////////////////////////////////////////////
             //With the child's trace, run the child (HINT: think recursion)
 
-            // add the child to the queue
-            wait_queue.push_back(child);
+            // Creating the child wait queue
+            std::vector<PCB> child_wait_queue = wait_queue;
+            child_wait_queue.push_back(current);
             
-            // system_status output logic - output before child runs
-            system_status += "time: " + std::to_string(current_time) + "; current trace: FORK\n";
-            system_status += print_PCB(current, wait_queue);
+            // Adding system_status output
+            system_status += "time: " + std::to_string(current_time) + "; current trace: FORK, " + std::to_string(duration_intr) + "\n";
+            system_status += print_PCB(child, child_wait_queue);
             system_status += "\n";
-
-            // recursively simulating child's execution
+            
+            // Running the child trace recursively
             auto [child_exec, child_status, child_time] = simulate_trace(
                 child_trace,
                 current_time,
@@ -122,12 +124,15 @@ std::tuple<std::string, std::string, int> simulate_trace(std::vector<std::string
                 delays,
                 external_files,
                 child,
-                std::vector<PCB>() // Child starts with empty queue
+                child_wait_queue
             );
 
             execution += child_exec;
             system_status += child_status;
             current_time = child_time;
+            
+            // Freeing the child's memory after completion
+            free_memory(&child);
 
             ///////////////////////////////////////////////////////////////////////////////////////////
 
