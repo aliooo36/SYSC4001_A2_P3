@@ -225,6 +225,11 @@ std::string scheduler(){
     return "scheduler called\n";
 }
 
+//Returns a random integer between 1 and 10
+int ran_int() {
+    return (rand() % 10) + 1;
+}
+
 //Helper function for a sanity check. Prints the external files table
 void print_external_files(std::vector<external_file> files) {
     const int tableWidth = 24;
